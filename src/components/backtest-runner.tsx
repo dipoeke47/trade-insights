@@ -143,7 +143,7 @@ export function BacktestRunner({ initial }: { initial?: Partial<RunRequest> }) {
       {strat && (
         <p className="mt-3 text-xs text-zinc-500">
           {strat.blurb}
-          {!strat.cashAccountOk && <span className="text-amber-400"> — backtest-only; needs spread/short approval you don&apos;t have in a cash account.</span>}
+          {!strat.cashAccountOk && <span className="text-warn"> — backtest-only; needs spread/short approval you don&apos;t have in a cash account.</span>}
         </p>
       )}
 
@@ -152,7 +152,7 @@ export function BacktestRunner({ initial }: { initial?: Partial<RunRequest> }) {
           className="rounded-md bg-emerald-600 px-4 py-1.5 text-sm font-medium text-white transition hover:bg-emerald-500 disabled:opacity-50">
           {state === "loading" ? "Running…" : "▶ Run backtest"}
         </button>
-        {state === "error" && <span className="text-xs text-rose-400">{error}</span>}
+        {state === "error" && <span className="text-xs text-neg">{error}</span>}
       </div>
 
       {result && result.trades > 0 && (
@@ -163,17 +163,17 @@ export function BacktestRunner({ initial }: { initial?: Partial<RunRequest> }) {
             <Stat label="Win rate" value={`${Math.round((result.win_rate ?? 0) * 100)}%`} />
             <Stat label="Daily Sharpe" value={(result.daily_sharpe ?? 0).toFixed(2)} tone={toneClass(result.daily_sharpe ?? 0)} />
             <Stat label="Profit factor" value={result.profit_factor != null ? result.profit_factor.toFixed(2) : "∞"} />
-            <Stat label="Max drawdown" value={usd(result.max_drawdown ?? 0)} tone="text-rose-400" />
+            <Stat label="Max drawdown" value={usd(result.max_drawdown ?? 0)} tone="text-neg" />
             <Stat label="Trades" value={`${result.trades}/${result.total_days ?? "?"}`} />
-            <Stat label="Avg win" value={signed(result.avg_win ?? 0)} tone="text-emerald-400" />
-            <Stat label="Avg loss" value={signed(result.avg_loss ?? 0)} tone="text-rose-400" />
+            <Stat label="Avg win" value={signed(result.avg_win ?? 0)} tone="text-pos" />
+            <Stat label="Avg loss" value={signed(result.avg_loss ?? 0)} tone="text-neg" />
             <Stat label="Contracts/day" value={(result.avg_units ?? 0).toFixed(1)} />
             <Stat label="Capital/day" value={usd(result.avg_capital_deployed ?? 0)} />
             <Stat label="Consistency" value={(result.score ?? 0).toFixed(2)} tone={toneClass(result.score ?? 0)} />
           </div>
 
           {result.low_sample && (
-            <p className="mt-3 rounded-md border border-amber-500/30 bg-amber-500/5 px-3 py-2 text-xs text-amber-300">
+            <p className="mt-3 rounded-md border border-amber-500/30 bg-amber-500/5 px-3 py-2 text-xs text-warn">
               ⚠ Low sample ({result.trades} trades) — these numbers are noise, not a real edge.
             </p>
           )}

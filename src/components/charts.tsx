@@ -53,8 +53,9 @@ function ticks(min: number, max: number, count = 4): number[] {
 }
 
 const MARGIN = { top: 10, right: 14, bottom: 22, left: 54 };
-const AXIS = "#71717a"; // zinc-500
-const GRID = "#27272a"; // zinc-800
+// Theme-aware (defined in globals.css) so axes/gridlines read on light + dark.
+const AXIS = "var(--chart-axis)";
+const GRID = "var(--chart-grid)";
 
 type AreaProps = {
   values: number[];

@@ -24,5 +24,7 @@ export const dateTime = (iso: string) =>
 export const dateOnly = (d: Date) =>
   d.toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" });
 
+// Semantic tone tokens swap shade by theme (see globals.css) so +/- P&L stays
+// readable on both light and dark backgrounds.
 export const toneClass = (n: number) =>
-  n > 0 ? "text-emerald-400" : n < 0 ? "text-rose-400" : "text-zinc-400";
+  n > 0 ? "text-pos" : n < 0 ? "text-neg" : "text-zinc-400";

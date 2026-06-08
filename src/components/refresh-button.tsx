@@ -34,7 +34,7 @@ export function RefreshButton() {
   return (
     <div className="flex items-center gap-2">
       {msg && (
-        <span className={`max-w-[18rem] truncate text-xs ${state === "err" ? "text-rose-400" : "text-zinc-500"}`}>
+        <span className={`max-w-[18rem] truncate text-xs ${state === "err" ? "text-neg" : "text-zinc-500"}`}>
           {msg}
         </span>
       )}

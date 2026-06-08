@@ -38,7 +38,7 @@ export function RangeSelector({ active }: { active: RangePreset | "CUSTOM" }) {
           onClick={() => setPreset(r)}
           className={`rounded-md border px-2.5 py-1 text-xs transition ${
             active === r
-              ? "border-emerald-500/50 bg-emerald-500/10 text-emerald-200"
+              ? "border-emerald-500/50 bg-emerald-500/10 text-pos"
               : "border-zinc-700 text-zinc-400 hover:text-zinc-200"
           }`}
         >

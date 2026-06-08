@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { BacktestRunner } from "@/components/backtest-runner";
+import { ThemeToggle } from "@/components/theme-toggle";
 import { signed, usd, toneClass } from "@/lib/format";
 import { APP_NAME } from "@/lib/app";
 import type { RankedReport, OptimizeReport, Summary } from "@/lib/backtest/types";
@@ -12,8 +13,8 @@ const optimized = optimizedJson as unknown as OptimizeReport;
 export const metadata = { title: `${APP_NAME} — Strategy Backtester` };
 
 function Badge({ children, tone }: { children: React.ReactNode; tone: "ok" | "warn" | "muted" }) {
-  const cls = tone === "ok" ? "border-emerald-500/40 text-emerald-300"
-    : tone === "warn" ? "border-amber-500/40 text-amber-300"
+  const cls = tone === "ok" ? "border-emerald-500/40 text-pos"
+    : tone === "warn" ? "border-amber-500/40 text-warn"
     : "border-zinc-700 text-zinc-400";
   return <span className={`rounded-full border px-1.5 py-0.5 text-[10px] ${cls}`}>{children}</span>;
 }
@@ -58,15 +59,18 @@ export default function BacktestPage() {
             Same-day open/close strategies ranked by consistent daily profitability · {ranked.sample_trading_days} trading days · {ranked.interval} bars
           </p>
         </div>
-        <Link href="/" className="rounded-md border border-zinc-700 px-3 py-1.5 text-xs text-zinc-300 transition hover:text-zinc-100">
-          ← Dashboard
-        </Link>
+        <div className="flex items-center gap-2">
+          <ThemeToggle />
+          <Link href="/" className="rounded-md border border-zinc-700 px-3 py-1.5 text-xs text-zinc-300 transition hover:text-zinc-100">
+            ← Dashboard
+          </Link>
+        </div>
       </header>
 
       {/* Honesty banner */}
-      <div className="mb-6 rounded-xl border border-amber-500/30 bg-amber-500/5 p-4 text-sm text-amber-100/90">
-        <p className="font-medium text-amber-200">⚠ Read this first — what these numbers are (and aren&apos;t)</p>
-        <p className="mt-1.5 text-amber-100/80">
+      <div className="mb-6 rounded-xl border border-amber-500/30 bg-amber-500/5 p-4 text-sm text-warn/90">
+        <p className="font-medium text-warn">⚠ Read this first — what these numbers are (and aren&apos;t)</p>
+        <p className="mt-1.5 text-warn/80">
           Free historical <em>option</em> prices don&apos;t exist, so options here are <strong>modeled</strong> with
           Black-Scholes on <strong>real</strong> intraday underlying data, with implied vol anchored to the live VIX
           level (SPY ≈ 19%, scaled up per symbol). Fills, slippage, and fees are modeled — these are <strong>not real
@@ -107,7 +111,7 @@ export default function BacktestPage() {
 
         {cashLegalRobust.length > 0 && (
           <div className="mt-3 rounded-xl border border-emerald-700/40 bg-emerald-900/10 p-4">
-            <div className="text-xs uppercase tracking-wide text-emerald-400">
+            <div className="text-xs uppercase tracking-wide text-pos">
               Best cash-account-legal config that survived the out-of-sample test
             </div>
             <div className="mt-1.5 flex flex-wrap items-baseline gap-x-4 gap-y-1 text-sm">
@@ -121,7 +125,7 @@ export default function BacktestPage() {
                 out-of-sample {signed(cashLegalRobust[0].test_avg_daily)}/day @ {Math.round(cashLegalRobust[0].test_win * 100)}% win
               </span>
             </div>
-            <p className="mt-1.5 text-xs text-emerald-200/60">
+            <p className="mt-1.5 text-xs text-pos/60">
               Caveat: directional longs profit mostly from market drift; high variance; size down and paper-trade.
             </p>
           </div>

@@ -1,26 +1,64 @@
 @import "tailwindcss";
 
-:root {
-  --background: #ffffff;
-  --foreground: #171717;
+/*
+  Theme system. The whole UI is written with `zinc-*` neutral classes that
+  assume a dark surface. To support BOTH light and dark (and a toggle) without
+  rewriting every component, we remap the `zinc` ramp to CSS variables that swap
+  by theme: in dark mode they're the real zinc values; in light mode they're the
+  inverted ramp (so `bg-zinc-900` becomes a light card, `text-zinc-100` becomes
+  near-black text, etc.). Accent text + chart lines use semantic tokens that also
+  swap, so colored text stays readable on either background.
+
+  Theme is selected by a `.dark` / `.light` class on <html> (set by ThemeToggle,
+  with a no-flash inline script in layout.tsx). Defaults to dark.
+*/
+
+:root,
+.dark {
+  --z-50: #fafafa;  --z-100: #f4f4f5; --z-200: #e4e4e7; --z-300: #d4d4d8;
+  --z-400: #a1a1aa; --z-500: #71717a; --z-600: #52525b; --z-700: #3f3f46;
+  --z-800: #27272a; --z-900: #18181b; --z-950: #09090b;
+
+  --c-pos: #34d399;   /* emerald-400 */
+  --c-neg: #fb7185;   /* rose-400 */
+  --c-warn: #fcd34d;  /* amber-300 */
+  --chart-axis: #8b8b93;
+  --chart-grid: #27272a;
+  color-scheme: dark;
+}
+
+.light {
+  /* inverted neutral ramp — light surfaces, dark text */
+  --z-50: #09090b;  --z-100: #18181b; --z-200: #27272a; --z-300: #3f3f46;
+  --z-400: #52525b; --z-500: #71717a; --z-600: #a1a1aa; --z-700: #d4d4d8;
+  --z-800: #e4e4e7; --z-900: #f4f4f5; --z-950: #ffffff;
+
+  --c-pos: #059669;   /* emerald-600 — readable on white */
+  --c-neg: #e11d48;   /* rose-600 */
+  --c-warn: #b45309;  /* amber-700 */
+  --chart-axis: #6b7280;
+  --chart-grid: #e4e4e7;
+  color-scheme: light;
 }
 
 @theme inline {
-  --color-background: var(--background);
-  --color-foreground: var(--foreground);
   --font-sans: var(--font-geist-sans);
   --font-mono: var(--font-geist-mono);
-}
 
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
-  }
+  /* zinc ramp -> theme-aware vars (every existing zinc-* class swaps) */
+  --color-zinc-50: var(--z-50);   --color-zinc-100: var(--z-100);
+  --color-zinc-200: var(--z-200); --color-zinc-300: var(--z-300);
+  --color-zinc-400: var(--z-400); --color-zinc-500: var(--z-500);
+  --color-zinc-600: var(--z-600); --color-zinc-700: var(--z-700);
+  --color-zinc-800: var(--z-800); --color-zinc-900: var(--z-900);
+  --color-zinc-950: var(--z-950);
+
+  /* semantic accent text tokens (theme-aware) */
+  --color-pos: var(--c-pos);
+  --color-neg: var(--c-neg);
+  --color-warn: var(--c-warn);
 }
 
 body {
-  background: var(--background);
-  color: var(--foreground);
-  font-family: Arial, Helvetica, sans-serif;
+  font-family: var(--font-sans), Arial, Helvetica, sans-serif;
 }

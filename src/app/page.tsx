@@ -4,6 +4,7 @@ import { getProvider } from "@/lib/broker";
 import { AreaChart, BarChart } from "@/components/charts";
 import { RangeSelector } from "@/components/range-selector";
 import { RefreshButton } from "@/components/refresh-button";
+import { ThemeToggle } from "@/components/theme-toggle";
 import {
   anchorDate,
   coverageStart,
@@ -59,10 +60,11 @@ export default async function Dashboard({
             >
               📊 Backtester
             </Link>
+            <ThemeToggle />
             {isReal && <RefreshButton />}
             <span
               className={`inline-flex items-center gap-1.5 rounded-full border px-3 py-1 text-xs ${
-                isReal ? "border-emerald-500/40 text-emerald-200" : "border-zinc-700 text-zinc-300"
+                isReal ? "border-emerald-500/40 text-pos" : "border-zinc-700 text-zinc-300"
               }`}
             >
               <span className={`h-1.5 w-1.5 rounded-full ${isReal ? "bg-emerald-400" : "bg-zinc-500"}`} />
@@ -88,7 +90,7 @@ export default async function Dashboard({
                 href={`/?account=${a.id}`}
                 className={`rounded-full border px-3 py-1 text-xs transition ${
                   active
-                    ? "border-emerald-500/50 bg-emerald-500/10 text-emerald-200"
+                    ? "border-emerald-500/50 bg-emerald-500/10 text-pos"
                     : "border-zinc-700 text-zinc-400 hover:text-zinc-200"
                 }`}
               >
@@ -117,7 +119,7 @@ export default async function Dashboard({
       </div>
 
       {!isReal && (
-        <div className="mb-6 rounded-lg border border-amber-500/30 bg-amber-500/10 px-4 py-3 text-sm text-amber-200">
+        <div className="mb-6 rounded-lg border border-amber-500/30 bg-amber-500/10 px-4 py-3 text-sm text-warn">
           <strong>Demo data.</strong> Connect a broker to see your real portfolio —
           drop a Robinhood snapshot at <code>.rh-snapshot.local.json</code>.
         </div>
@@ -284,7 +286,7 @@ export default async function Dashboard({
                 <span key="t" className={o.assetType === "option" ? "text-violet-300" : "text-zinc-400"}>
                   {o.assetType === "option" ? "Option" : "Stock"}
                 </span>,
-                <span key="d" className={o.side === "buy" ? "text-emerald-400" : "text-rose-400"}>
+                <span key="d" className={o.side === "buy" ? "text-pos" : "text-neg"}>
                   {o.side.toUpperCase()}
                 </span>,
                 o.qty,
