@@ -10,5 +10,19 @@ export const pct = (n: number) => `${n >= 0 ? "+" : ""}${n.toFixed(2)}%`;
 
 export const signed = (n: number) => `${n >= 0 ? "+" : "-"}${usd(Math.abs(n))}`;
 
+/** "Jun 8, 2026, 3:42 PM" — for snapshot timestamps. */
+export const dateTime = (iso: string) =>
+  new Date(iso).toLocaleString("en-US", {
+    month: "short",
+    day: "numeric",
+    year: "numeric",
+    hour: "numeric",
+    minute: "2-digit",
+  });
+
+/** "Jun 8, 2026" — date only, for coverage range. */
+export const dateOnly = (d: Date) =>
+  d.toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" });
+
 export const toneClass = (n: number) =>
   n > 0 ? "text-emerald-400" : n < 0 ? "text-rose-400" : "text-zinc-400";

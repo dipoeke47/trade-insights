@@ -42,6 +42,9 @@ yarn-error.log*
 __pycache__/
 *.pyc
 
+# backtest market-data cache (re-fetchable from yfinance; not personal)
+/.backtest-cache.local
+
 # vercel
 .vercel
 

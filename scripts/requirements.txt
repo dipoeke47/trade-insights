@@ -2,3 +2,7 @@
 # Pulls real options order history from Robinhood's classic private API.
 robin_stocks>=3.0.0
 pyotp>=2.9.0          # optional: automatic TOTP 2FA
+
+# Backtester (scripts/backtest/): real intraday underlying data + modeled options.
+yfinance>=0.2.40     # free intraday OHLCV + VIX
+pandas>=2.0          # session/bar handling (pulls in numpy)

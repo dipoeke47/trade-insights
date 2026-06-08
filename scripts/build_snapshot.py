@@ -13,8 +13,8 @@ for both stocks (get_all_stock_orders) and options (get_all_option_orders). This
 is the UNOFFICIAL API: it can change without notice and is a ToS gray area — use
 on your own account only.
 
-WHAT IT WRITES (into the primary account)
------------------------------------------
+WHAT IT WRITES (into EACH account — orders are fetched per account_number)
+--------------------------------------------------------------------------
 - transactions[]   full stock + option transaction history (windowed by the UI)
 - realizedEvents[] full realized-P&L events by date (stocks via FIFO; options via
                    net cashflow on fully-closed contracts) — summed/curved per range
@@ -329,36 +329,46 @@ def main():
                  "(TOTP) in .env.local, or run `npm run snapshot` in a terminal once "
                  "to cache a session.")
 
-    print("Fetching full stock order history…")
-    s_orders = rh.orders.get_all_stock_orders() or []
-    print("Fetching full option order history…")
-    o_orders = rh.orders.get_all_option_orders() or []
-    with open(RAW, "w") as f:
-        json.dump({"stock": s_orders, "option": o_orders}, f, indent=2)
-    print(f"  {len(s_orders)} stock + {len(o_orders)} option orders -> "
-          f"{os.path.relpath(RAW, ROOT)} (raw, git-ignored)")
-
-    print("Resolving symbols + computing realized P&L…")
-    s_txns, s_events, s_fills, _ = parse_stock_orders(s_orders)
-    o_txns, o_events, o_fills, _ = parse_option_orders(o_orders)
-
     accounts = snapshot.get("accounts") or []
-    acct_id = PRIMARY or (accounts[0]["id"] if accounts else None)
-    acct = next((a for a in accounts if a["id"] == acct_id), None)
-    if acct is None:
-        sys.exit("No matching account in snapshot. Set RH_PRIMARY_ACCOUNT to one of "
+    # Build every account by default. Orders are fetched PER ACCOUNT — the classic
+    # API defaults to the primary account only, so without an explicit
+    # account_number the non-primary accounts (Joint, Equities, …) come back empty.
+    # RH_PRIMARY_ACCOUNT, if set, restricts the refresh to that single account.
+    targets = [a for a in accounts if a["id"] == PRIMARY] if PRIMARY else accounts
+    if PRIMARY and not targets:
+        sys.exit("RH_PRIMARY_ACCOUNT not found in snapshot. Choose one of: "
                  + ", ".join(a["id"] for a in accounts))
-    realized, n, s_total, o_total = build_account(
-        acct, s_txns, s_events, s_fills, o_txns, o_events, o_fills)
+
+    raw = {}
+    summary = []
+    for acct in targets:
+        acct_id = acct["id"]
+        print(f"Fetching order history for {acct['name']} ({acct_id})…")
+        s_orders = rh.orders.get_all_stock_orders(account_number=acct_id) or []
+        o_orders = rh.orders.get_all_option_orders(account_number=acct_id) or []
+        raw[acct_id] = {"stock": s_orders, "option": o_orders}
+        print(f"  {len(s_orders)} stock + {len(o_orders)} option orders")
+
+        s_txns, s_events, s_fills, _ = parse_stock_orders(s_orders)
+        o_txns, o_events, o_fills, _ = parse_option_orders(o_orders)
+        realized, n, s_total, o_total = build_account(
+            acct, s_txns, s_events, s_fills, o_txns, o_events, o_fills)
+        summary.append((acct["name"], n, realized, s_total, o_total))
+
+    with open(RAW, "w") as f:
+        json.dump(raw, f, indent=2)
 
     snapshot["generatedAt"] = dt.datetime.now(dt.timezone.utc).isoformat()
     with open(SNAP, "w") as f:
         json.dump(snapshot, f, indent=2)
 
-    print(f"\n{n} transactions | realized P&L ${realized:,.2f} "
-          f"(stocks ${s_total:,.2f} + options ${o_total:,.2f})")
+    print()
+    for name, n, realized, s_total, o_total in summary:
+        print(f"{name}: {n} transactions | realized P&L ${realized:,.2f} "
+              f"(stocks ${s_total:,.2f} + options ${o_total:,.2f})")
     print(f"Updated {os.path.relpath(SNAP, ROOT)} — refresh the dashboard.")
-    print(f"If a number looks off, paste me one entry from {os.path.relpath(RAW, ROOT)}.")
+    print(f"If a number looks off, paste me one entry from {os.path.relpath(RAW, ROOT)} "
+          "(it's now keyed by account id).")
 
 
 if __name__ == "__main__":

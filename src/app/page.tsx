@@ -6,6 +6,7 @@ import { RangeSelector } from "@/components/range-selector";
 import { RefreshButton } from "@/components/refresh-button";
 import {
   anchorDate,
+  coverageStart,
   deriveEvents,
   deriveTransactions,
   resolveRange,
@@ -13,7 +14,7 @@ import {
   type RangePreset,
   type SymbolPnl,
 } from "@/lib/window";
-import { usd, pct, signed, toneClass } from "@/lib/format";
+import { usd, pct, signed, toneClass, dateTime, dateOnly } from "@/lib/format";
 import { APP_NAME, APP_TAGLINE } from "@/lib/app";
 
 export default async function Dashboard({
@@ -38,6 +39,10 @@ export default async function Dashboard({
   const hasHistory = view.pnlSeries.length > 0;
   const rangeDates = `${rng.from.toLocaleDateString("en-US")} – ${rng.to.toLocaleDateString("en-US")}`;
 
+  // Snapshot provenance: when the data was pulled, and how far back it reaches.
+  const pulledAt = data.generatedAt ? dateTime(data.generatedAt) : null;
+  const coverageFrom = coverageStart(data);
+
   return (
     <div className="mx-auto w-full max-w-6xl px-5 py-8">
       {/* Header */}
@@ -46,16 +51,29 @@ export default async function Dashboard({
           <h1 className="text-2xl font-semibold tracking-tight">{APP_NAME}</h1>
           <p className="text-sm text-zinc-400">{APP_TAGLINE}</p>
         </div>
-        <div className="flex items-center gap-3">
-          {isReal && <RefreshButton />}
-          <span
-            className={`inline-flex items-center gap-1.5 rounded-full border px-3 py-1 text-xs ${
-              isReal ? "border-emerald-500/40 text-emerald-200" : "border-zinc-700 text-zinc-300"
-            }`}
-          >
-            <span className={`h-1.5 w-1.5 rounded-full ${isReal ? "bg-emerald-400" : "bg-zinc-500"}`} />
-            {isReal ? "Live · Robinhood" : "Demo data"}
-          </span>
+        <div className="flex flex-col items-end gap-1.5">
+          <div className="flex items-center gap-3">
+            <Link
+              href="/backtest"
+              className="rounded-md border border-zinc-700 px-2.5 py-1 text-xs text-zinc-300 transition hover:text-zinc-100"
+            >
+              📊 Backtester
+            </Link>
+            {isReal && <RefreshButton />}
+            <span
+              className={`inline-flex items-center gap-1.5 rounded-full border px-3 py-1 text-xs ${
+                isReal ? "border-emerald-500/40 text-emerald-200" : "border-zinc-700 text-zinc-300"
+              }`}
+            >
+              <span className={`h-1.5 w-1.5 rounded-full ${isReal ? "bg-emerald-400" : "bg-zinc-500"}`} />
+              {isReal ? "Live · Robinhood" : "Demo data"}
+            </span>
+          </div>
+          {pulledAt && (
+            <span className="text-xs text-zinc-500" title={data.generatedAt}>
+              Snapshot pulled {pulledAt}
+            </span>
+          )}
         </div>
       </header>
 
@@ -88,6 +106,13 @@ export default async function Dashboard({
         </Suspense>
         <div className="text-xs text-zinc-500">
           Showing <span className="text-zinc-300">{rng.label}</span> · {rangeDates}
+          {coverageFrom && (
+            <>
+              {" "}
+              · history back to{" "}
+              <span className="text-zinc-300">{dateOnly(coverageFrom)}</span>
+            </>
+          )}
         </div>
       </div>
 

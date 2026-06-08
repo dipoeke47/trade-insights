@@ -68,6 +68,19 @@ export function anchorDate(txns: Transaction[], events: RealizedEvent[]): Date {
   return dates.length ? startOfDay(parseISO(dates[dates.length - 1])) : startOfDay(new Date());
 }
 
+/** Earliest record in the snapshot — how far back the pulled history reaches.
+ *  Looks across transactions, realized events, and the P&L curve. */
+export function coverageStart(d: DashboardData): Date | null {
+  const dates = [
+    ...deriveTransactions(d).map((t) => t.date),
+    ...deriveEvents(d).map((e) => e.date),
+    ...(d.pnlSeries ?? []).map((p) => p.date),
+  ]
+    .map((s) => s.slice(0, 10))
+    .sort();
+  return dates.length ? startOfDay(parseISO(dates[0])) : null;
+}
+
 export interface ResolvedRange {
   from: Date;
   to: Date;

@@ -7,7 +7,9 @@
     "build": "next build",
     "start": "next start",
     "lint": "eslint",
-    "snapshot": "sh -c '[ -x .venv/bin/python ] && exec .venv/bin/python scripts/build_snapshot.py || exec python3 scripts/build_snapshot.py'"
+    "snapshot": "sh -c '[ -x .venv/bin/python ] && exec .venv/bin/python scripts/build_snapshot.py || exec python3 scripts/build_snapshot.py'",
+    "backtest:rank": "sh -c '[ -x .venv/bin/python ] && exec .venv/bin/python -m scripts.backtest.rank_all || exec python3 -m scripts.backtest.rank_all'",
+    "backtest:optimize": "sh -c '[ -x .venv/bin/python ] && exec .venv/bin/python -m scripts.backtest.optimize || exec python3 -m scripts.backtest.optimize'"
   },
   "dependencies": {
     "next": "16.2.7",

@@ -94,6 +94,8 @@ export interface RealizedEvent {
 
 export interface DashboardData {
   source: DataSource;
+  /** ISO timestamp of when this snapshot was pulled from the broker. */
+  generatedAt?: string;
   account: Account;
   portfolio: Portfolio;
   positions: Position[];

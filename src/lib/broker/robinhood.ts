@@ -19,6 +19,8 @@ import type {
   PnlPoint,
   Portfolio,
   Position,
+  RealizedEvent,
+  Transaction,
 } from "./types";
 
 const SNAPSHOT_PATH = join(process.cwd(), ".rh-snapshot.local.json");
@@ -33,6 +35,10 @@ interface SnapshotAccount {
   orders: Order[];
   pnlSeries: PnlPoint[];
   dailyTrades: DailyTrades[];
+  /** Full executed/attempted transaction history (stock + option legs). */
+  transactions?: Transaction[];
+  /** Full realized-P&L event history. */
+  realizedEvents?: RealizedEvent[];
 }
 
 interface Snapshot {
@@ -71,6 +77,7 @@ export class RobinhoodProvider implements BrokerProvider {
 
     return {
       source: this.source,
+      generatedAt: this.snapshot.generatedAt,
       account: {
         id: acct.id,
         name: acct.name,
@@ -82,6 +89,8 @@ export class RobinhoodProvider implements BrokerProvider {
       orders: acct.orders,
       pnlSeries: acct.pnlSeries,
       dailyTrades: acct.dailyTrades,
+      transactions: acct.transactions,
+      realizedEvents: acct.realizedEvents,
     };
   }
 }

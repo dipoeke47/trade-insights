@@ -131,6 +131,7 @@ export class DemoProvider implements BrokerProvider {
 
     return {
       source: this.source,
+      generatedAt: new Date().toISOString(),
       account: { id: "demo-agentic", name: "Agentic Demo", type: "agentic", currency: "USD" },
       portfolio: {
         equity: last.equity + cash,

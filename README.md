@@ -10,6 +10,9 @@ A trading & investing dashboard — realized P&L, drawdown, daily activity, hold
 - **Per-symbol winners & losers** within the range
 - **Stocks + options** transactions, with options realized P&L
 - **Holdings** (current) and an **AI Copilot** view *(planned)*
+- **Intraday options backtester** (`/backtest`) — ranks same-day open/close
+  strategies by daily profitability, with a tweak-and-run dashboard and an
+  out-of-sample (train/test) guard ([methodology + honesty caveats](scripts/backtest/README.md))
 - **Responsive, interactive charts** — X/Y axes + hover tooltips, dependency-free SVG
 - **Account switcher** for multi-account brokerages
 
@@ -73,6 +76,7 @@ scripts/build_snapshot.py     # local: pull real Robinhood history → snapshot 
 - [x] Dashboard UI with `DemoProvider`, deployable to Vercel
 - [x] `RobinhoodProvider` (snapshot) — stocks + options, full history
 - [x] Global date-range filtering + per-symbol P&L
+- [x] Intraday options backtester + dashboard (`/backtest`), modeled-options + train/test guard
 - [ ] Live OAuth transport (auto-refresh instead of snapshot)
 - [ ] Agentic copilot (natural-language order review / rebalance)
 
