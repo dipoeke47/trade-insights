@@ -16,10 +16,19 @@ export interface Portfolio {
   equity: number;
   cash: number;
   buyingPower: number;
+  /** Aggregate options market value, when the broker reports it. */
+  optionsValue?: number;
   dayPnl: number;
   dayPnlPct: number;
   totalPnl: number;
   totalPnlPct: number;
+}
+
+/** Lightweight account descriptor for the account switcher. */
+export interface AccountSummary {
+  id: string;
+  name: string;
+  type: "individual" | "agentic";
 }
 
 export interface Position {
@@ -34,6 +43,7 @@ export interface Position {
 
 export type OrderSide = "buy" | "sell";
 export type OrderStatus = "filled" | "pending" | "cancelled";
+export type AssetType = "stock" | "option";
 
 export interface Order {
   id: string;
@@ -43,6 +53,10 @@ export interface Order {
   price: number;
   status: OrderStatus;
   createdAt: string; // ISO date
+  /** Defaults to "stock" when omitted. */
+  assetType?: AssetType;
+  /** Human-readable contract label for options, e.g. "$150 Call · exp 6/20". */
+  detail?: string;
 }
 
 export interface PnlPoint {
@@ -57,6 +71,27 @@ export interface DailyTrades {
   count: number;
 }
 
+/** A single executed/attempted transaction (stock or option leg). */
+export interface Transaction {
+  id: string;
+  date: string; // ISO
+  symbol: string;
+  assetType: AssetType;
+  detail?: string;
+  side: OrderSide;
+  qty: number;
+  price: number;
+  status: OrderStatus;
+}
+
+/** A realized-P&L event (a position closing), used to window P&L by date. */
+export interface RealizedEvent {
+  date: string; // YYYY-MM-DD
+  amount: number; // realized $ on this date (+/-)
+  assetType: AssetType;
+  symbol: string;
+}
+
 export interface DashboardData {
   source: DataSource;
   account: Account;
@@ -65,15 +100,23 @@ export interface DashboardData {
   orders: Order[];
   pnlSeries: PnlPoint[];
   dailyTrades: DailyTrades[];
+  /** Full transaction history (real data). The UI windows over this by date. */
+  transactions?: Transaction[];
+  /** Full realized-P&L event history (real data). Summed/curved per range. */
+  realizedEvents?: RealizedEvent[];
 }
 
 /**
  * The single interface the entire dashboard depends on.
  * - DemoProvider: realistic generated data, no credentials needed.
- * - RobinhoodProvider (Phase 2): OAuth against Robinhood's official agent MCP
- *   endpoints, returning the same shape.
+ * - RobinhoodProvider: reads a local snapshot of your real Robinhood data today;
+ *   live OAuth against Robinhood's official agent MCP is the next step.
+ *
+ * Multi-account: listAccounts() powers the switcher; getDashboard(accountId)
+ * returns one account's view. Omitting accountId yields the default account.
  */
 export interface BrokerProvider {
   readonly source: DataSource;
-  getDashboard(): Promise<DashboardData>;
+  listAccounts(): Promise<AccountSummary[]>;
+  getDashboard(accountId?: string): Promise<DashboardData>;
 }

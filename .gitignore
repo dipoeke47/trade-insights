@@ -34,6 +34,14 @@ yarn-error.log*
 .env*
 !.env.example
 
+# local broker snapshot — real personal financial data, never commit
+*.local.json
+
+# python virtualenv + caches for scripts/
+/.venv
+__pycache__/
+*.pyc
+
 # vercel
 .vercel
 

@@ -3,6 +3,7 @@
 // date window rolls forward), so charts don't flicker between requests.
 
 import type {
+  AccountSummary,
   BrokerProvider,
   DashboardData,
   DailyTrades,
@@ -112,6 +113,10 @@ function buildDailyTrades(series: PnlPoint[]): DailyTrades[] {
 
 export class DemoProvider implements BrokerProvider {
   readonly source = "demo" as const;
+
+  async listAccounts(): Promise<AccountSummary[]> {
+    return [{ id: "demo-agentic", name: "Agentic Demo", type: "agentic" }];
+  }
 
   async getDashboard(): Promise<DashboardData> {
     const pnlSeries = buildPnlSeries();

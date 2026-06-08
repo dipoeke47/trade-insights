@@ -1,0 +1,4 @@
+# Local data-prep only (not part of the Next.js app runtime).
+# Pulls real options order history from Robinhood's classic private API.
+robin_stocks>=3.0.0
+pyotp>=2.9.0          # optional: automatic TOTP 2FA
