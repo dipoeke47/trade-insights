@@ -10,7 +10,7 @@ import math
 import os
 import pickle
 import warnings
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from datetime import date
 
 import pandas as pd
@@ -61,6 +61,9 @@ class Session:
     vix_open: float    # prior-day VIX close — regime context (display only)
     iv_base: float     # annualized IV estimate for pricing = trailing realized vol
     realized_vol: float  # this day's own realized vol (for diagnostics)
+    # Tail of prior sessions' bars so multi-day indicators (MACD/RSI/…) are
+    # warmed up by the open. Session-scoped signals (VWAP/momentum/ORB) ignore it.
+    warmup: list = field(default_factory=list)
 
     def minute_index(self, minute_of_day: int) -> int:
         """Index of the first bar at/after the given minute_of_day; -1 if none."""
@@ -169,6 +172,12 @@ def load_sessions(
 
     sessions.sort(key=lambda s: s.day)
     _assign_iv(sessions, symbol)
+    # Warm up multi-day indicators: each session sees the last 60 bars of the
+    # preceding sessions (a continuous intraday series, as live indicators use).
+    acc: list[Bar] = []
+    for sess in sessions:
+        sess.warmup = acc[-60:]
+        acc.extend(sess.bars)
     return sessions
 
 

@@ -12,6 +12,9 @@ from __future__ import annotations
 
 from dataclasses import dataclass, field
 
+import math
+
+from . import indicators
 from . import strategies as strat
 from .data import Session
 from .pricing import price_option
@@ -44,6 +47,9 @@ class RunConfig:
     target_pct: float | None = None       # override strategy default
     stop_pct: float | None = None
     max_units: int = 50                   # liquidity sanity cap
+    # Fraction of the account deployable on a single day's trade. 1.0 = bet the
+    # whole account (ruin risk on long options); lower = survivable risk control.
+    deploy_fraction: float = 1.0
 
     def resolved_targets(self) -> tuple[float, float]:
         s = strat.get(self.strategy)
@@ -103,31 +109,30 @@ def _half_spread(mid: float, cfg: RunConfig) -> float:
 
 # --- signal ---------------------------------------------------------------
 
+# Direction depends only on (session, signal, entry_idx) — not on dte/account/
+# target/stop — so memoize it; the search sweeps the latter heavily per session.
+_DIR_CACHE: dict[tuple, int | None] = {}
+
+
+# Session-scoped signals read only today's bars; the rest need a continuous
+# multi-day series (today's bars warmed up with prior sessions' tail).
+_SESSION_SCOPED = {"momentum", "orb", "always", "vwap"}
+
+
 def _direction(session: Session, entry_idx: int, cfg: RunConfig) -> int | None:
-    """+1 / -1 directional bias, or None to skip the day."""
-    bars = session.bars
-    open_px = bars[0].open
-    entry_px = bars[entry_idx].close
-    if cfg.signal == "always":
-        return 1
-    if cfg.signal == "momentum":
-        if entry_px > open_px:
-            return 1
-        if entry_px < open_px:
-            return -1
-        return None
-    if cfg.signal == "orb":
-        window = [b for b in bars if b.minute_of_day <= bars[0].minute_of_day + cfg.orb_minutes]
-        if not window:
-            return None
-        hi = max(b.high for b in window)
-        lo = min(b.low for b in window)
-        if entry_px > hi:
-            return 1
-        if entry_px < lo:
-            return -1
-        return None
-    return 1
+    """+1 / -1 directional bias from the chosen signal, or None to skip."""
+    key = (id(session), cfg.signal, entry_idx)
+    cached = _DIR_CACHE.get(key, "MISS")
+    if cached != "MISS":
+        return cached
+    fn = indicators.DISPATCH.get(cfg.signal, indicators.DISPATCH["always"])
+    if cfg.signal in _SESSION_SCOPED:
+        d = fn(session.bars, entry_idx, cfg)
+    else:
+        bars = session.warmup + session.bars
+        d = fn(bars, len(session.warmup) + entry_idx, cfg)
+    _DIR_CACHE[key] = d
+    return d
 
 
 # --- core simulation ------------------------------------------------------
@@ -189,9 +194,11 @@ def _capital_required(legs, prices, strikes, entry_spot: float) -> tuple[float, 
 def simulate_session(session: Session, cfg: RunConfig) -> DayResult:
     s = strat.get(cfg.strategy)
     target_pct, stop_pct = cfg.resolved_targets()
-    # Price options off THIS underlying's own trailing realized vol (×iv premium),
-    # not a borrowed S&P index — otherwise high-vol names look falsely profitable.
-    iv = max(0.03, session.iv_base * cfg.iv_multiplier)
+    # IV anchored to this underlying's own vol (see data.py). The 0DTE richness
+    # premium (iv_multiplier) decays with tenor — a 30-day option ~ VIX, only
+    # same-day options trade meaningfully above it.
+    iv_prem = 1.0 + (cfg.iv_multiplier - 1.0) * math.exp(-cfg.dte / 3.0)
+    iv = max(0.03, session.iv_base * iv_prem)
 
     entry_idx = session.minute_index(cfg.entry_minute)
     day = session.day.isoformat()
@@ -225,8 +232,16 @@ def simulate_session(session: Session, cfg: RunConfig) -> DayResult:
             mids_at_entry.append(mid)
 
     capital_req, pnl_basis = _capital_required(legs, mids_at_entry, strikes, entry_spot)
-    units = min(cfg.max_units, int(cfg.account_size // capital_req))
-    affordable = units >= 1
+    deployable = cfg.account_size * cfg.deploy_fraction
+    units = min(cfg.max_units, int(deployable // capital_req))
+    # "affordable" = at least one unit fits the *full* account (the position is
+    # tradeable); deploy_fraction then governs how much of it we actually risk.
+    affordable = int(cfg.account_size // capital_req) >= 1
+    # Granularity reality: if the risk-sized amount can't buy even one contract
+    # but the account can, you're forced to take the minimum 1 (over-risking) —
+    # exactly why tiny accounts can't size prudently on options.
+    if units < 1 and affordable:
+        units = 1
     if not affordable:
         # Position doesn't fit the account — record as a non-trade so it doesn't
         # masquerade as a flat $0 day. The summary then flags it unaffordable.

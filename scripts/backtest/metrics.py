@@ -52,6 +52,7 @@ def summarize(result: BacktestResult) -> dict:
         }
 
     mean, std = _stats(pnls)
+    acct = result.config.get("account_size") or 0
     wins = [p for p in pnls if p > 0]
     losses = [p for p in pnls if p < 0]
     gross_win = sum(wins)
@@ -110,6 +111,11 @@ def summarize(result: BacktestResult) -> dict:
         "total_days": all_days,
         "participation": round(participation, 3),
         "low_sample": low_sample,
+        # Account-relative daily profit: lets different account sizes be compared
+        # on equal footing (return %, not raw $). Daily Sharpe already normalizes
+        # by account (constant divisor) so it doubles as the return-consistency.
+        "avg_daily_return_pct": round(mean / acct * 100, 4) if acct else 0.0,
+        "median_daily_return_pct": round(sorted(pnls)[n // 2] / acct * 100, 4) if acct else 0.0,
         "avg_daily_pnl": round(mean, 2),
         "median_daily_pnl": round(sorted(pnls)[n // 2], 2),
         "std_daily_pnl": round(std, 2),

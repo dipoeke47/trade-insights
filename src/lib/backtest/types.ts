@@ -25,8 +25,10 @@ export const STRATEGIES: StrategyMeta[] = [
 ];
 
 export const SYMBOLS = ["SPY", "QQQ", "IWM", "NIO", "GRAB", "PLUG"];
-export const ACCOUNT_SIZES = [200, 500, 1000];
-export const SIGNALS = ["momentum", "orb", "always"] as const;
+export const ACCOUNT_SIZES = [100, 200, 500, 1000];
+export const SIGNALS = [
+  "momentum", "orb", "always", "vwap", "macd", "stoch", "smi", "rsi", "ema_cross",
+] as const;
 
 export interface DayResult {
   day: string;
