@@ -39,6 +39,14 @@ DTES = [0, 1, 2, 5]
 DIRECTIONAL = ["long_call_put", "long_otm", "credit_spread", "debit_spread"]
 NON_DIRECTIONAL = ["long_straddle", "long_strangle", "cash_secured_put", "iron_condor"]
 
+# Indicator confluence combos ("&" = all must agree, else skip). Tests whether
+# any combination of indicators creates a directional edge single ones don't.
+COMBOS = [
+    "vwap&rsi", "vwap&macd", "vwap&ema_cross", "rsi&macd", "rsi&stoch",
+    "macd&ema_cross", "stoch&ema_cross", "vwap&rsi&macd", "vwap&ema_cross&rsi",
+    "macd&rsi&stoch",
+]
+
 INNER = {
     "target_pct": [0.3, 0.5, 0.75, 1.0],
     "stop_pct": [0.4, 0.6, 1.0],
@@ -118,7 +126,7 @@ def eval_cell(cell: dict) -> dict | None:
 def _cells(quick: bool):
     dtes = [0, 1] if quick else DTES
     syms = ["SPY", "QQQ", "NIO"] if quick else SYMBOLS
-    sigs = ["always", "rsi", "macd", "vwap"] if quick else ALL_SIGNALS
+    sigs = ["always", "rsi", "macd", "vwap"] if quick else (ALL_SIGNALS + COMBOS)
     cells = []
     for sym in syms:
         for acct in ACCOUNTS:

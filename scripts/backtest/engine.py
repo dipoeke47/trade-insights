@@ -119,18 +119,40 @@ _DIR_CACHE: dict[tuple, int | None] = {}
 _SESSION_SCOPED = {"momentum", "orb", "always", "vwap"}
 
 
+def _component_dir(name: str, session: Session, entry_idx: int, cfg: RunConfig) -> int | None:
+    fn = indicators.DISPATCH.get(name, indicators.DISPATCH["always"])
+    if name in _SESSION_SCOPED:
+        return fn(session.bars, entry_idx, cfg)
+    bars = session.warmup + session.bars
+    return fn(bars, len(session.warmup) + entry_idx, cfg)
+
+
 def _direction(session: Session, entry_idx: int, cfg: RunConfig) -> int | None:
-    """+1 / -1 directional bias from the chosen signal, or None to skip."""
+    """+1 / -1 directional bias from the chosen signal, or None to skip.
+
+    Combo syntax: "a&b" = confluence (ALL must agree on a direction, else skip);
+    "a|b" = majority vote. Confluence trades less but more selectively.
+    """
     key = (id(session), cfg.signal, entry_idx)
     cached = _DIR_CACHE.get(key, "MISS")
     if cached != "MISS":
         return cached
-    fn = indicators.DISPATCH.get(cfg.signal, indicators.DISPATCH["always"])
-    if cfg.signal in _SESSION_SCOPED:
-        d = fn(session.bars, entry_idx, cfg)
+
+    sig = cfg.signal
+    if "&" in sig or "|" in sig:
+        unanimous = "&" in sig
+        names = sig.replace("|", "&").split("&")
+        dirs = [_component_dir(n, session, entry_idx, cfg) for n in names]
+        valid = [d for d in dirs if d is not None]
+        if unanimous:
+            d = None if len(valid) < len(names) else (
+                1 if all(x == 1 for x in valid) else -1 if all(x == -1 for x in valid) else None)
+        else:
+            s = sum(valid)
+            d = None if not valid or s == 0 else (1 if s > 0 else -1)
     else:
-        bars = session.warmup + session.bars
-        d = fn(bars, len(session.warmup) + entry_idx, cfg)
+        d = _component_dir(sig, session, entry_idx, cfg)
+
     _DIR_CACHE[key] = d
     return d
 
