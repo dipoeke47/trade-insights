@@ -322,7 +322,12 @@ def main():
         return
 
     print("Logging into Robinhood…")
-    login()
+    try:
+        login()
+    except Exception as e:  # non-interactive MFA, expired session, etc.
+        sys.exit(f"Login failed: {e}. For an unattended refresh, set RH_MFA_SECRET "
+                 "(TOTP) in .env.local, or run `npm run snapshot` in a terminal once "
+                 "to cache a session.")
 
     print("Fetching full stock order history…")
     s_orders = rh.orders.get_all_stock_orders() or []

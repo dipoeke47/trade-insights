@@ -3,6 +3,7 @@ import Link from "next/link";
 import { getProvider } from "@/lib/broker";
 import { AreaChart, BarChart } from "@/components/charts";
 import { RangeSelector } from "@/components/range-selector";
+import { RefreshButton } from "@/components/refresh-button";
 import {
   anchorDate,
   deriveEvents,
@@ -45,14 +46,17 @@ export default async function Dashboard({
           <h1 className="text-2xl font-semibold tracking-tight">{APP_NAME}</h1>
           <p className="text-sm text-zinc-400">{APP_TAGLINE}</p>
         </div>
-        <span
-          className={`inline-flex items-center gap-1.5 rounded-full border px-3 py-1 text-xs ${
-            isReal ? "border-emerald-500/40 text-emerald-200" : "border-zinc-700 text-zinc-300"
-          }`}
-        >
-          <span className={`h-1.5 w-1.5 rounded-full ${isReal ? "bg-emerald-400" : "bg-zinc-500"}`} />
-          {isReal ? "Live · Robinhood" : "Demo data"}
-        </span>
+        <div className="flex items-center gap-3">
+          {isReal && <RefreshButton />}
+          <span
+            className={`inline-flex items-center gap-1.5 rounded-full border px-3 py-1 text-xs ${
+              isReal ? "border-emerald-500/40 text-emerald-200" : "border-zinc-700 text-zinc-300"
+            }`}
+          >
+            <span className={`h-1.5 w-1.5 rounded-full ${isReal ? "bg-emerald-400" : "bg-zinc-500"}`} />
+            {isReal ? "Live · Robinhood" : "Demo data"}
+          </span>
+        </div>
       </header>
 
       {/* Account switcher */}
