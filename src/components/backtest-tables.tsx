@@ -55,6 +55,7 @@ export function LeaderboardTable({ rows }: { rows: Summary[] }) {
       rowKey={(s) => `${s.symbol}-${s.strategy}-${s.account_size}`}
       initialKey="rank"
       initialDir="asc"
+      defaultLimit={12}
     />
   );
 }
@@ -94,6 +95,7 @@ export function SwingTable({ rows }: { rows: SwingResult[] }) {
       rowKey={(r, i) => `${r.symbol}-${r.strategy}-${r.hold_days}-${i}`}
       initialKey="retdd"
       initialDir="desc"
+      defaultLimit={12}
     />
   );
 }

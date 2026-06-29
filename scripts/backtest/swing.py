@@ -238,8 +238,9 @@ def summarize_swing(trades, symbol, strat_key, hold):
 
 def main():
     results = []
-    strategies = ["cash_secured_put", "covered_call", "credit_spread", "iron_condor",
-                  "long_call_put", "long_straddle"]
+    # ETF cash-secured puts / covered calls need $23k-62k collateral — removed
+    # (the account can't fund them). ETFs keep spreads + directional + overnight.
+    strategies = ["credit_spread", "iron_condor", "long_call_put", "long_straddle"]
     for sym in ETFS:
         days = _daily(sym)
         ivm = _iv_map(sym)

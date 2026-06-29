@@ -20,15 +20,19 @@ export function SortableTable<T>({
   rowKey,
   initialKey,
   initialDir = "desc",
+  defaultLimit,
 }: {
   columns: Col<T>[];
   rows: T[];
   rowKey: (r: T, i: number) => string;
   initialKey?: string;
   initialDir?: "asc" | "desc";
+  /** Show only this many rows until the user expands (keeps long tables short). */
+  defaultLimit?: number;
 }) {
   const [key, setKey] = useState(initialKey ?? "");
   const [dir, setDir] = useState<"asc" | "desc">(initialDir);
+  const [expanded, setExpanded] = useState(false);
 
   const active = columns.find((c) => c.key === key);
   const sorted = useMemo(() => {
@@ -42,6 +46,9 @@ export function SortableTable<T>({
     });
     return dir === "desc" ? out.reverse() : out;
   }, [rows, active, dir]);
+
+  const limited = defaultLimit && !expanded ? sorted.slice(0, defaultLimit) : sorted;
+  const hidden = sorted.length - limited.length;
 
   const onSort = (c: Col<T>) => {
     if (!c.sort) return;
@@ -77,7 +84,7 @@ export function SortableTable<T>({
           </tr>
         </thead>
         <tbody>
-          {sorted.map((r, i) => (
+          {limited.map((r, i) => (
             <tr key={rowKey(r, i)} className="border-t border-zinc-800/70 hover:bg-zinc-900/40">
               {columns.map((c) => (
                 <td
@@ -91,6 +98,14 @@ export function SortableTable<T>({
           ))}
         </tbody>
       </table>
+      {defaultLimit && sorted.length > defaultLimit && (
+        <button
+          onClick={() => setExpanded((e) => !e)}
+          className="w-full border-t border-zinc-800 py-2 text-xs text-zinc-400 transition hover:bg-zinc-900/40 hover:text-zinc-200"
+        >
+          {expanded ? "Show less ▲" : `Show all ${sorted.length} ▼  (${hidden} more)`}
+        </button>
+      )}
     </div>
   );
 }

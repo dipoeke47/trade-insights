@@ -136,6 +136,20 @@ def login():
         mfa = pyotp.TOTP(secret).now()
     rh.login(user, pw, mfa_code=mfa, store_session=True)
 
+    # A stale cached session can "log in" without raising, then fail every data
+    # call with a cryptic "can only be called when logged in". Probe one
+    # authenticated endpoint so an expired session fails fast and clearly.
+    try:
+        ok = rh.account.load_account_profile(info="account_number")
+    except Exception:
+        ok = None
+    if not ok:
+        raise RuntimeError(
+            "Robinhood session is not authenticated — it has likely expired. "
+            "Run `npm run snapshot` in your terminal to log in again "
+            "(set RH_MFA_SECRET in .env.local for unattended in-app refreshes)."
+        )
+
 
 def status_of(state):
     if state == FILLED:
