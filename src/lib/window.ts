@@ -195,7 +195,7 @@ export function windowView(d: DashboardData, from: Date, to: Date): WindowView {
     pnlSeries,
     maxDrawdown,
     dailyTrades,
-    transactions: [...txns].sort((a, b) => b.date.localeCompare(a.date)).slice(0, 100),
+    transactions: [...txns].sort((a, b) => b.date.localeCompare(a.date)),
     bySymbol,
   };
 }

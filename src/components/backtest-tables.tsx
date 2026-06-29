@@ -33,6 +33,8 @@ export function LeaderboardTable({ rows }: { rows: Summary[] }) {
       cell: (s) => <span className={toneClass(s.daily_sharpe ?? 0)}>{(s.daily_sharpe ?? 0).toFixed(2)}</span> },
     { key: "dd", label: "Max DD", align: "right", sort: (s) => s.max_drawdown ?? 0,
       cell: (s) => <span className="text-neg" title="Worst peak-to-trough loss over the test (sized $)">{usd(s.max_drawdown ?? 0)}</span> },
+    { key: "retdd", label: "Ret/DD", align: "right", sort: (s) => s.return_dd ?? -99,
+      cell: (s) => <span className={toneClass(s.return_dd ?? 0)} title="Return ÷ worst drawdown — profit per $1 of max pain (the single best pick metric)">{(s.return_dd ?? 0).toFixed(2)}</span> },
     { key: "pf", label: "PF", align: "right", sort: (s) => s.profit_factor ?? 0,
       cell: (s) => <span className="text-zinc-400">{s.profit_factor != null ? s.profit_factor.toFixed(2) : "∞"}</span> },
     { key: "n", label: "n", align: "right", sort: (s) => s.trades,

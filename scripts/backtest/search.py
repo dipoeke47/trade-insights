@@ -31,9 +31,9 @@ OUT_PATH = os.path.join(
     "src", "lib", "backtest", "search.json",
 )
 
-# SPY/QQQ/IWM have true daily 0DTE + weeklies; NIO is a cheap name so a $100
-# account can actually afford a contract.
-SYMBOLS = ["SPY", "QQQ", "IWM", "NIO"]
+# SPY/QQQ/IWM — liquid daily 0DTE + weeklies. ETFs only (cheap single names
+# removed at user request).
+SYMBOLS = ["SPY", "QQQ", "IWM"]
 ACCOUNTS = [100.0, 500.0, 1000.0]
 DTES = [0, 1, 2, 5]
 DIRECTIONAL = ["long_call_put", "long_otm", "credit_spread", "debit_spread"]
@@ -125,7 +125,7 @@ def eval_cell(cell: dict) -> dict | None:
 
 def _cells(quick: bool):
     dtes = [0, 1] if quick else DTES
-    syms = ["SPY", "QQQ", "NIO"] if quick else SYMBOLS
+    syms = ["SPY", "QQQ", "IWM"] if quick else SYMBOLS
     sigs = ["always", "rsi", "macd", "vwap"] if quick else (ALL_SIGNALS + COMBOS)
     cells = []
     for sym in syms:
@@ -168,7 +168,7 @@ def main(argv) -> int:
                        "out-of-sample guard. Same-day open/close; DTE>0 = longer-"
                        "dated option held intraday. Options modeled (Black-Scholes, "
                        "VIX-anchored). Out-of-sample survival is NOT a profit promise.",
-        "symbols": SYMBOLS if not quick else ["SPY", "QQQ", "NIO"],
+        "symbols": SYMBOLS if not quick else ["SPY", "QQQ", "IWM"],
         "accounts": ACCOUNTS, "dtes": DTES, "signals": ALL_SIGNALS,
         "inner_grid": INNER, "train_frac": TRAIN_FRAC,
         "total_cells": len(cells), "robust_count": len(robust),

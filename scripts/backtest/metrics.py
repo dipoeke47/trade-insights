@@ -126,6 +126,10 @@ def summarize(result: BacktestResult) -> dict:
         "avg_win": round(sum(wins) / len(wins), 2) if wins else 0.0,
         "avg_loss": round(sum(losses) / len(losses), 2) if losses else 0.0,
         "max_drawdown": round(max_dd, 2),
+        # Return-to-drawdown (Calmar-style): total profit per $1 of worst
+        # drawdown. The single best "profit without wiping out" metric.
+        "return_dd": round(sum(pnls) / abs(max_dd), 2) if max_dd < -1e-9 else (
+            99.9 if sum(pnls) > 0 else 0.0),
         "daily_sharpe": round(daily_sharpe, 3),
         "avg_capital_deployed": round(avg_capital, 2),
         "avg_units": round(avg_units, 2),

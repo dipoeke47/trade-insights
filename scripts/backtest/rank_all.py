@@ -27,7 +27,7 @@ OUT_PATH = os.path.join(
 # the capital-heavy premium-selling strategies (CSP / covered call) something
 # that actually fits a $1k cash account.
 ETFS = ["SPY", "QQQ", "IWM"]          # liquid 0DTE
-CHEAP = ["NIO", "GRAB", "PLUG"]       # collateral < $600
+CHEAP: list[str] = []                 # (cheap single names removed — ETFs only)
 SYMBOLS = ETFS + CHEAP
 ACCOUNT_SIZES = [200.0, 500.0, 1000.0]
 INTERVAL = "5m"

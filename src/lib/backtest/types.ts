@@ -24,7 +24,7 @@ export const STRATEGIES: StrategyMeta[] = [
   { key: "iron_condor", name: "Iron Condor (0DTE)", category: "spread", cashAccountOk: false, blurb: "Range-bound premium selling. Needs spread approval." },
 ];
 
-export const SYMBOLS = ["SPY", "QQQ", "IWM", "NIO", "GRAB", "PLUG"];
+export const SYMBOLS = ["SPY", "QQQ", "IWM"];
 export const ACCOUNT_SIZES = [100, 200, 500, 1000];
 export const SIGNALS = [
   "momentum", "orb", "always", "vwap", "macd", "stoch", "smi", "rsi", "ema_cross",
@@ -67,6 +67,7 @@ export interface Summary {
   avg_win?: number;
   avg_loss?: number;
   max_drawdown?: number;
+  return_dd?: number;
   daily_sharpe?: number;
   avg_capital_deployed?: number;
   avg_units?: number;

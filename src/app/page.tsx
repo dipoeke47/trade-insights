@@ -5,6 +5,7 @@ import { AreaChart, BarChart } from "@/components/charts";
 import { RangeSelector } from "@/components/range-selector";
 import { RefreshButton } from "@/components/refresh-button";
 import { ThemeToggle } from "@/components/theme-toggle";
+import { TransactionsTable } from "@/components/transactions-table";
 import {
   anchorDate,
   coverageStart,
@@ -266,37 +267,13 @@ export default async function Dashboard({
         ) : null}
       </Card>
 
-      {/* Transactions — windowed to the selected range */}
+      {/* Transactions — windowed to the selected range; filtered + paged client-side */}
       <div className="mt-6">
         <Card
           title="Transactions"
           subtitle={`${rng.label} · ${view.stockTradeCount} stock · ${view.optionTradeCount} options`}
         >
-          {view.transactions.length ? (
-            <Table
-              head={["Date", "Symbol", "Type", "Side", "Qty", "Price", "Status"]}
-              rows={view.transactions.map((o) => [
-                new Date(o.date).toLocaleDateString("en-US"),
-                <span key="s">
-                  <span className="font-medium">{o.symbol}</span>
-                  {o.detail ? (
-                    <span className="ml-1 text-xs text-zinc-500">{o.detail}</span>
-                  ) : null}
-                </span>,
-                <span key="t" className={o.assetType === "option" ? "text-violet-300" : "text-zinc-400"}>
-                  {o.assetType === "option" ? "Option" : "Stock"}
-                </span>,
-                <span key="d" className={o.side === "buy" ? "text-pos" : "text-neg"}>
-                  {o.side.toUpperCase()}
-                </span>,
-                o.qty,
-                usd(o.price, 2),
-                <span key="st" className="text-zinc-400">{o.status}</span>,
-              ])}
-            />
-          ) : (
-            <Empty>No transactions in this range.</Empty>
-          )}
+          <TransactionsTable transactions={view.transactions} />
         </Card>
       </div>
 
