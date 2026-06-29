@@ -219,6 +219,92 @@ export function BarChart({ values, labels, height = 150, color = "#60a5fa", unit
   );
 }
 
+type DivergingProps = {
+  values: number[];
+  labels: string[];
+  height?: number;
+  pos?: string;
+  neg?: string;
+};
+
+/** Daily P&L bars: green above the zero line for up days, red below for down days. */
+export function DivergingBarChart({
+  values,
+  labels,
+  height = 180,
+  pos = "#34d399",
+  neg = "#fb7185",
+}: DivergingProps) {
+  const [ref, width] = useWidth();
+  const [hover, setHover] = useState<number | null>(null);
+
+  const iw = Math.max(1, width - MARGIN.left - MARGIN.right);
+  const ih = height - MARGIN.top - MARGIN.bottom;
+  const n = values.length;
+
+  if (n === 0) return <div ref={ref} style={{ height }} />;
+
+  const max = Math.max(0, ...values);
+  const min = Math.min(0, ...values);
+  const range = max - min || 1;
+  const slot = iw / n;
+  const bw = Math.max(1, Math.min(slot * 0.7, 26));
+  const xLeft = (i: number) => MARGIN.left + i * slot + (slot - bw) / 2;
+  const y = (v: number) => MARGIN.top + ih - ((v - min) / range) * ih;
+  const zeroY = y(0);
+  const yt = ticks(min, max);
+  const xIdx = [0, Math.round((n - 1) / 2), n - 1];
+
+  return (
+    <div ref={ref} className="relative" style={{ height }}>
+      <svg width={width} height={height} role="img" className="block">
+        {yt.map((v, i) => (
+          <g key={i}>
+            <line x1={MARGIN.left} x2={width - MARGIN.right} y1={y(v)} y2={y(v)} stroke={GRID} strokeWidth={1} />
+            <text x={MARGIN.left - 8} y={y(v) + 3} textAnchor="end" fontSize={10} fill={AXIS}>
+              {fmt(v, "usd")}
+            </text>
+          </g>
+        ))}
+        {xIdx.map((i) => (
+          <text key={i} x={MARGIN.left + i * slot + slot / 2} y={height - 6} textAnchor="middle" fontSize={10} fill={AXIS}>
+            {shortDate(labels[i])}
+          </text>
+        ))}
+        <line x1={MARGIN.left} x2={MARGIN.left} y1={MARGIN.top} y2={MARGIN.top + ih} stroke={AXIS} strokeWidth={1} />
+        {/* emphasized zero line — bars diverge from here */}
+        <line x1={MARGIN.left} x2={width - MARGIN.right} y1={zeroY} y2={zeroY} stroke={AXIS} strokeWidth={1.25} />
+        {values.map((v, i) => {
+          const top = v >= 0 ? y(v) : zeroY;
+          const h = Math.max(1, Math.abs(y(v) - zeroY));
+          return (
+            <rect
+              key={i}
+              x={xLeft(i)}
+              y={top}
+              width={bw}
+              height={h}
+              rx={1.5}
+              fill={v >= 0 ? pos : neg}
+              opacity={hover === null || hover === i ? 0.9 : 0.4}
+              onMouseEnter={() => setHover(i)}
+              onMouseLeave={() => setHover(null)}
+            />
+          );
+        })}
+      </svg>
+      {hover !== null && (
+        <Tooltip
+          x={MARGIN.left + hover * slot + slot / 2}
+          width={width}
+          label={shortDate(labels[hover])}
+          value={`${values[hover] >= 0 ? "+" : "−"}${usd(Math.abs(values[hover]))}`}
+        />
+      )}
+    </div>
+  );
+}
+
 function Tooltip({ x, width, label, value }: { x: number; width: number; label: string; value: string }) {
   // Keep the tooltip inside the chart bounds.
   const left = Math.max(40, Math.min(width - 40, x));

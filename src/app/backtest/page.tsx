@@ -1,15 +1,17 @@
 import Link from "next/link";
 import { BacktestRunner } from "@/components/backtest-runner";
 import { ThemeToggle } from "@/components/theme-toggle";
-import { LeaderboardTable, SurvivorsTable } from "@/components/backtest-tables";
+import { LeaderboardTable, SurvivorsTable, SwingTable } from "@/components/backtest-tables";
 import { signed, toneClass } from "@/lib/format";
 import { APP_NAME } from "@/lib/app";
-import type { RankedReport, OptimizeReport } from "@/lib/backtest/types";
+import type { RankedReport, OptimizeReport, SwingReport } from "@/lib/backtest/types";
 import rankedJson from "@/lib/backtest/ranked.json";
 import optimizedJson from "@/lib/backtest/optimized.json";
+import swingJson from "@/lib/backtest/swing.json";
 
 const ranked = rankedJson as unknown as RankedReport;
 const optimized = optimizedJson as unknown as OptimizeReport;
+const swing = swingJson as unknown as SwingReport;
 
 export const metadata = { title: `${APP_NAME} — Strategy Backtester` };
 
@@ -184,9 +186,26 @@ export default function BacktestPage() {
         </p>
       </section>
 
+      {/* Multi-day swing results */}
+      <section className="mb-7">
+        <h2 className="mb-1 text-lg font-semibold">Multi-day swing (held to expiry) — the more trustworthy test</h2>
+        <p className="mb-3 text-xs text-zinc-500">
+          Positions held across days to expiration, on <strong>~2 years of daily data</strong> (up to 500 trades).
+          The exit payoff is the <em>real</em> underlying price at expiry — only the entry premium is modeled — so this
+          is far more reliable than the 60-day intraday tests. <span className="text-pos">Green capital</span> = fits a $1k account.
+          Sorted by Ret/DD; click to re-sort.
+        </p>
+        <SwingTable rows={swing.results} />
+        <p className="mt-2 text-xs text-zinc-600">
+          Premium-selling held to expiry wins 75–90% of the time — the real edge. But credit spreads/iron condors need
+          spread approval, and ETF cash-secured puts need $23k–62k collateral; only cheap-name CSPs and overnight shares
+          fit $1k. Premium selling is &ldquo;win often, lose big rarely&rdquo; — the ~2yr window is mostly calm/up.
+        </p>
+      </section>
+
       {/* Out-of-sample optimizer results */}
       <section className="mb-7">
-        <h2 className="mb-1 text-lg font-semibold">Out-of-sample survivors</h2>
+        <h2 className="mb-1 text-lg font-semibold">Out-of-sample survivors (intraday)</h2>
         <p className="mb-3 text-xs text-zinc-500">
           Each config tuned on the first 65% of days, then scored on the held-out last 35%.
           &ldquo;Robust&rdquo; = profitable in <em>both</em> windows (resists curve-fitting). {robust.length} of {optimized.configs.length} strategy slots produced a robust config. Click headers to sort.

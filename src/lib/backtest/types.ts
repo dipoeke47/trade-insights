@@ -128,6 +128,31 @@ export interface OptimizeReport {
   configs: OptimizeConfig[];
 }
 
+export interface SwingResult {
+  symbol: string;
+  strategy: string;
+  strategy_name: string;
+  cash_account_ok: boolean;
+  hold_days: number;
+  trades: number;
+  win_rate: number;
+  avg_pnl_per_trade: number;
+  capital_per_trade: number;
+  ret_per_trade_pct: number;
+  total_pnl: number;
+  total_return_on_capital_pct: number;
+  profit_factor: number | null;
+  max_drawdown: number;
+  return_dd: number;
+  sharpe_per_trade: number;
+}
+
+export interface SwingReport {
+  methodology: string;
+  holds: number[];
+  results: SwingResult[];
+}
+
 export interface RunRequest {
   symbol: string;
   strategy: string;

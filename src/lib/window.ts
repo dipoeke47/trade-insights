@@ -130,6 +130,7 @@ export interface WindowView {
   optionTradeCount: number;
   stockTradeCount: number;
   pnlSeries: PnlPoint[]; // cumulative realized within range (starts ~0)
+  dailyPnl: { date: string; amount: number }[]; // per-day realized P&L (+/-)
   maxDrawdown: number;
   dailyTrades: { date: string; count: number }[];
   transactions: Transaction[];
@@ -158,6 +159,11 @@ export function windowView(d: DashboardData, from: Date, to: Date): WindowView {
     maxDrawdown = Math.min(maxDrawdown, dd);
     return { date: day, equity: +cum.toFixed(2), pnl: +cum.toFixed(2), drawdownPct: dd };
   });
+
+  // per-day realized P&L (signed) — for the diverging bar chart + calendar
+  const dailyPnl = [...byDay.keys()]
+    .sort()
+    .map((date) => ({ date, amount: +byDay.get(date)!.toFixed(2) }));
 
   const filled = txns.filter((t) => t.status === "filled");
   const fills = new Map<string, number>();
@@ -193,6 +199,7 @@ export function windowView(d: DashboardData, from: Date, to: Date): WindowView {
     optionTradeCount: txns.filter((t) => t.assetType === "option").length,
     stockTradeCount: txns.filter((t) => t.assetType !== "option").length,
     pnlSeries,
+    dailyPnl,
     maxDrawdown,
     dailyTrades,
     transactions: [...txns].sort((a, b) => b.date.localeCompare(a.date)),

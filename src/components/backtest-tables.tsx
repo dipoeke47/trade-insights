@@ -6,7 +6,7 @@
 
 import { SortableTable, type Col } from "@/components/sortable-table";
 import { signed, usd, toneClass } from "@/lib/format";
-import type { Summary, OptimizeCandidate } from "@/lib/backtest/types";
+import type { Summary, OptimizeCandidate, SwingResult } from "@/lib/backtest/types";
 
 function Badge({ children, tone }: { children: React.ReactNode; tone: "ok" | "warn" }) {
   const cls = tone === "ok" ? "border-emerald-500/40 text-pos" : "border-amber-500/40 text-warn";
@@ -55,6 +55,45 @@ export function LeaderboardTable({ rows }: { rows: Summary[] }) {
       rowKey={(s) => `${s.symbol}-${s.strategy}-${s.account_size}`}
       initialKey="rank"
       initialDir="asc"
+    />
+  );
+}
+
+export function SwingTable({ rows }: { rows: SwingResult[] }) {
+  const columns: Col<SwingResult>[] = [
+    { key: "symbol", label: "Sym", sort: (r) => r.symbol,
+      cell: (r) => <span className="font-medium text-zinc-200">{r.symbol}</span> },
+    { key: "strategy", label: "Strategy", sort: (r) => r.strategy_name,
+      cell: (r) => <span className="text-zinc-300">{r.strategy_name}</span> },
+    { key: "hold", label: "Hold", align: "right", sort: (r) => r.hold_days,
+      cell: (r) => <span className="text-zinc-400">{r.hold_days}d</span> },
+    { key: "win", label: "Win", align: "right", sort: (r) => r.win_rate,
+      cell: (r) => <span className="text-zinc-300">{Math.round(r.win_rate * 100)}%</span> },
+    { key: "cap", label: "Capital/trade", align: "right", sort: (r) => r.capital_per_trade,
+      cell: (r) => (
+        <span className={r.capital_per_trade <= 1000 ? "text-pos" : "text-zinc-400"}
+          title={r.capital_per_trade <= 1000 ? "Fits a $1k account" : "Needs more than $1k"}>
+          {usd(r.capital_per_trade)}{r.capital_per_trade <= 1000 ? " ✓" : ""}
+        </span>
+      ) },
+    { key: "ret", label: "Ret/trade", align: "right", sort: (r) => r.ret_per_trade_pct,
+      cell: (r) => <span className={toneClass(r.ret_per_trade_pct)}>{r.ret_per_trade_pct.toFixed(2)}%</span> },
+    { key: "retdd", label: "Ret/DD", align: "right", sort: (r) => r.return_dd,
+      cell: (r) => <span className={toneClass(r.return_dd - 1)} title="Profit per $1 of worst drawdown">{r.return_dd.toFixed(2)}</span> },
+    { key: "pf", label: "PF", align: "right", sort: (r) => r.profit_factor ?? 0,
+      cell: (r) => <span className="text-zinc-400">{r.profit_factor != null ? r.profit_factor.toFixed(2) : "∞"}</span> },
+    { key: "n", label: "n", align: "right", sort: (r) => r.trades,
+      cell: (r) => <span className="text-zinc-500">{r.trades}</span> },
+    { key: "flag", label: "",
+      cell: (r) => (r.cash_account_ok ? <Badge tone="ok">cash-OK</Badge> : <Badge tone="warn">spread</Badge>) },
+  ];
+  return (
+    <SortableTable
+      columns={columns}
+      rows={rows}
+      rowKey={(r, i) => `${r.symbol}-${r.strategy}-${r.hold_days}-${i}`}
+      initialKey="retdd"
+      initialDir="desc"
     />
   );
 }

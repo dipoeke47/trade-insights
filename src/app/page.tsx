@@ -1,11 +1,12 @@
 import { Suspense } from "react";
 import Link from "next/link";
 import { getProvider } from "@/lib/broker";
-import { AreaChart, BarChart } from "@/components/charts";
+import { AreaChart, BarChart, DivergingBarChart } from "@/components/charts";
 import { RangeSelector } from "@/components/range-selector";
 import { RefreshButton } from "@/components/refresh-button";
 import { ThemeToggle } from "@/components/theme-toggle";
-import { TransactionsTable } from "@/components/transactions-table";
+import { Calendar, type DayStat } from "@/components/calendar";
+import { TransactionFilters, TransactionPager } from "@/components/transaction-controls";
 import {
   anchorDate,
   coverageStart,
@@ -22,9 +23,20 @@ import { APP_NAME, APP_TAGLINE } from "@/lib/app";
 export default async function Dashboard({
   searchParams,
 }: {
-  searchParams: Promise<{ account?: string; range?: string; from?: string; to?: string }>;
+  searchParams: Promise<{
+    account?: string;
+    range?: string;
+    from?: string;
+    to?: string;
+    txType?: string;
+    txSide?: string;
+    txStatus?: string;
+    txSym?: string;
+    txPage?: string;
+  }>;
 }) {
-  const { account, range, from, to } = await searchParams;
+  const { account, range, from, to, txType, txSide, txStatus, txSym, txPage } =
+    await searchParams;
   const provider = getProvider();
   const [accounts, data] = await Promise.all([
     provider.listAccounts(),
@@ -44,6 +56,27 @@ export default async function Dashboard({
   // Snapshot provenance: when the data was pulled, and how far back it reaches.
   const pulledAt = data.generatedAt ? dateTime(data.generatedAt) : null;
   const coverageFrom = coverageStart(data);
+
+  // Per-day P&L + trade count, keyed by date — feeds the calendar heatmap.
+  const calDays: Record<string, DayStat> = {};
+  for (const d of view.dailyPnl) calDays[d.date] = { pnl: d.amount, trades: 0 };
+  for (const t of view.dailyTrades) {
+    (calDays[t.date] ??= { pnl: 0, trades: 0 }).trades = t.count;
+  }
+
+  // Transactions are filtered + paginated on the server, driven by URL params.
+  const TX_PAGE_SIZE = 25;
+  const txQuery = (txSym ?? "").trim().toUpperCase();
+  const txFiltered = view.transactions.filter(
+    (t) =>
+      (!txType || txType === "all" || t.assetType === txType) &&
+      (!txSide || txSide === "all" || t.side === txSide) &&
+      (!txStatus || txStatus === "all" || t.status === txStatus) &&
+      (!txQuery || t.symbol.toUpperCase().includes(txQuery)),
+  );
+  const txPageCount = Math.max(1, Math.ceil(txFiltered.length / TX_PAGE_SIZE));
+  const txPageNum = Math.min(Math.max(0, parseInt(txPage ?? "0", 10) || 0), txPageCount - 1);
+  const txRows = txFiltered.slice(txPageNum * TX_PAGE_SIZE, (txPageNum + 1) * TX_PAGE_SIZE);
 
   return (
     <div className="mx-auto w-full max-w-6xl px-5 py-8">
@@ -179,6 +212,20 @@ export default async function Dashboard({
         </Card>
       </section>
 
+      {/* Daily realized P&L — green up days above the zero line, red below */}
+      <div className="mb-6">
+        <Card title="Daily P&L" subtitle={rng.label}>
+          {view.dailyPnl.length ? (
+            <DivergingBarChart
+              values={view.dailyPnl.map((d) => d.amount)}
+              labels={view.dailyPnl.map((d) => d.date)}
+            />
+          ) : (
+            <Empty>No realized P&amp;L in this range.</Empty>
+          )}
+        </Card>
+      </div>
+
       <section className="mb-6 grid gap-4 lg:grid-cols-3">
         <div className="lg:col-span-2">
           <Card title="Daily trades" subtitle={rng.label}>
@@ -203,6 +250,13 @@ export default async function Dashboard({
           </p>
         </Card>
       </section>
+
+      {/* Trading calendar — per-day P&L + trade count, tinted by result */}
+      <div className="mb-6">
+        <Card title="Trading calendar" subtitle={`${rng.label} · P&L + trades per day`}>
+          <Calendar days={calDays} />
+        </Card>
+      </div>
 
       {/* Realized P&L by symbol — winners & losers within the range */}
       <div className="mb-6">
@@ -267,13 +321,56 @@ export default async function Dashboard({
         ) : null}
       </Card>
 
-      {/* Transactions — windowed to the selected range; filtered + paged client-side */}
+      {/* Transactions — windowed to the range; filtered + paged server-side via URL */}
       <div className="mt-6">
         <Card
           title="Transactions"
           subtitle={`${rng.label} · ${view.stockTradeCount} stock · ${view.optionTradeCount} options`}
         >
-          <TransactionsTable transactions={view.transactions} />
+          <TransactionFilters
+            type={txType ?? "all"}
+            side={txSide ?? "all"}
+            status={txStatus ?? "all"}
+            sym={txSym ?? ""}
+          />
+          {txRows.length ? (
+            <>
+              <Table
+                head={["Date", "Symbol", "Type", "Side", "Qty", "Price", "Status"]}
+                rows={txRows.map((o) => [
+                  new Date(o.date).toLocaleDateString("en-US"),
+                  <span key="s">
+                    <span className="font-medium">{o.symbol}</span>
+                    {o.detail ? (
+                      <span className="ml-1 text-xs text-zinc-500">{o.detail}</span>
+                    ) : null}
+                  </span>,
+                  <span key="t" className={o.assetType === "option" ? "text-violet-300" : "text-zinc-400"}>
+                    {o.assetType === "option" ? "Option" : "Stock"}
+                  </span>,
+                  <span key="d" className={o.side === "buy" ? "text-pos" : "text-neg"}>
+                    {o.side.toUpperCase()}
+                  </span>,
+                  o.qty,
+                  usd(o.price, 2),
+                  <span key="st" className="text-zinc-400">{o.status}</span>,
+                ])}
+              />
+              <TransactionPager
+                page={txPageNum}
+                pageCount={txPageCount}
+                pageSize={TX_PAGE_SIZE}
+                filteredTotal={txFiltered.length}
+                total={view.transactions.length}
+              />
+            </>
+          ) : (
+            <Empty>
+              {view.transactions.length
+                ? "No transactions match these filters."
+                : "No transactions in this range."}
+            </Empty>
+          )}
         </Card>
       </div>
 
