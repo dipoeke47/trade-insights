@@ -1,9 +1,10 @@
 import Link from "next/link";
 import { BacktestRunner } from "@/components/backtest-runner";
 import { ThemeToggle } from "@/components/theme-toggle";
-import { signed, usd, toneClass } from "@/lib/format";
+import { LeaderboardTable, SurvivorsTable } from "@/components/backtest-tables";
+import { signed, toneClass } from "@/lib/format";
 import { APP_NAME } from "@/lib/app";
-import type { RankedReport, OptimizeReport, Summary } from "@/lib/backtest/types";
+import type { RankedReport, OptimizeReport } from "@/lib/backtest/types";
 import rankedJson from "@/lib/backtest/ranked.json";
 import optimizedJson from "@/lib/backtest/optimized.json";
 
@@ -12,38 +13,42 @@ const optimized = optimizedJson as unknown as OptimizeReport;
 
 export const metadata = { title: `${APP_NAME} — Strategy Backtester` };
 
-function Badge({ children, tone }: { children: React.ReactNode; tone: "ok" | "warn" | "muted" }) {
-  const cls = tone === "ok" ? "border-emerald-500/40 text-pos"
-    : tone === "warn" ? "border-amber-500/40 text-warn"
-    : "border-zinc-700 text-zinc-400";
-  return <span className={`rounded-full border px-1.5 py-0.5 text-[10px] ${cls}`}>{children}</span>;
-}
-
-function Row({ s }: { s: Summary }) {
-  return (
-    <tr className="border-t border-zinc-800/70 hover:bg-zinc-900/40">
-      <td className="py-2 pr-2 text-zinc-500 tabular-nums">{s.rank}</td>
-      <td className="py-2 pr-2 font-medium text-zinc-200">{s.symbol}</td>
-      <td className="py-2 pr-2 text-zinc-300">{s.strategy_name}</td>
-      <td className="py-2 pr-2 text-right tabular-nums text-zinc-400">{usd(s.account_size ?? 0)}</td>
-      <td className={`py-2 pr-2 text-right tabular-nums font-medium ${toneClass(s.avg_daily_pnl ?? 0)}`}>{signed(s.avg_daily_pnl ?? 0)}</td>
-      <td className="py-2 pr-2 text-right tabular-nums text-zinc-300">{Math.round((s.win_rate ?? 0) * 100)}%</td>
-      <td className={`py-2 pr-2 text-right tabular-nums ${toneClass(s.daily_sharpe ?? 0)}`}>{(s.daily_sharpe ?? 0).toFixed(2)}</td>
-      <td className="py-2 pr-2 text-right tabular-nums text-zinc-400">{s.profit_factor != null ? s.profit_factor.toFixed(2) : "∞"}</td>
-      <td className="py-2 pr-2 text-right tabular-nums text-zinc-500">{s.trades}</td>
-      <td className="py-2 pr-2">
-        <div className="flex flex-wrap gap-1">
-          {s.cash_account_ok ? <Badge tone="ok">cash-OK</Badge> : <Badge tone="warn">spread</Badge>}
-          {s.affordable === false && <Badge tone="warn">over $1k</Badge>}
-          {s.low_sample && <Badge tone="warn">low-n</Badge>}
-        </div>
-      </td>
-    </tr>
-  );
-}
+// Concrete "playbook" cards — the single best credit and best cash-legal
+// (non-credit) configs distilled from the full search, with trade-level detail.
+const PLAYBOOK = {
+  credit: {
+    title: "Best overall — Credit spread",
+    needs: "needs spread / Level-3 approval",
+    lines: [
+      ["Instrument", "IWM (Russell 2000 ETF) — 0DTE"],
+      ["Strategy", "Vertical credit spread (bull-put when leaning up, bear-call when down)"],
+      ["Entry filter", "MACD + EMA-cross must agree (skips ~⅔ of days — selective)"],
+      ["Best account", "$1,000 · risk ~50% per trade"],
+      ["Per trade", "≈ $440 collateral (2–3 spreads, each ~$3–5 wide)"],
+      ["When to enter", "11:00 AM ET, only on agreement days"],
+      ["When to exit", "let it decay to near max profit · stop if down 60% of credit · force-close 3:55 PM"],
+    ],
+    stats: "≈ 81% win days · Sharpe 0.78 · worst drawdown −22% · ~$100/day modeled",
+    tone: "pos" as const,
+  },
+  nonCredit: {
+    title: "Best cash-legal — Long call/put (directional)",
+    needs: "tradeable today, but NO durable edge",
+    lines: [
+      ["Instrument", "IWM — 0DTE"],
+      ["Strategy", "Buy 1 ATM call (lean up) or put (lean down)"],
+      ["Best account", "$1,000 · risk ~25% per trade"],
+      ["Per trade", "≈ $195 (1–2 contracts ~$115 each)"],
+      ["When to enter", "9:45 AM ET"],
+      ["When to exit", "+75% profit · −40% stop · force-close 3:55 PM"],
+    ],
+    stats: "≈ 43% win (coin-flip) · Sharpe 0.21 · worst drawdown −52% · ~$30/day modeled",
+    tone: "warn" as const,
+  },
+};
 
 export default function BacktestPage() {
-  const top = ranked.ranked.slice(0, 20);
+  const top = ranked.ranked;
   const robust = optimized.configs
     .filter((c) => c.best_robust)
     .map((c) => c.best_robust!)
@@ -78,6 +83,21 @@ export default function BacktestPage() {
           for absolute dollars, and <strong>never</strong> as a promise of future profit. Past-window edges routinely vanish live.
         </p>
       </div>
+
+      {/* How to read this */}
+      <details className="group mb-6 rounded-xl border border-zinc-800 bg-zinc-900/30 p-4" open>
+        <summary className="cursor-pointer list-none text-sm font-medium text-zinc-200">
+          📖 How to read this page <span className="text-xs text-zinc-500">(click to collapse)</span>
+        </summary>
+        <ul className="mt-3 space-y-2 text-sm text-zinc-400">
+          <li><strong className="text-zinc-200">The golden rule:</strong> a big <em>$/day</em> means nothing if <em>Max DD</em> (max drawdown — the worst peak-to-trough loss) is bigger than the account. That&apos;s a strategy that &ldquo;made money&rdquo; on paper but blew up first.</li>
+          <li><strong className="text-zinc-200">$/day vs %/day:</strong> dollars favor bigger accounts; <em>%/day</em> (return on the account) compares $100 / $500 / $1,000 fairly.</li>
+          <li><strong className="text-zinc-200">Win</strong> = share of days that finished green. <strong className="text-zinc-200">Sharpe</strong> = consistency (higher = steadier, not lumpy). <strong className="text-zinc-200">PF</strong> (profit factor) = $ won ÷ $ lost (&gt;1 = profitable). <strong className="text-zinc-200">n</strong> = number of trades (small n = treat as noise).</li>
+          <li><strong className="text-zinc-200">Flags:</strong> <span className="text-pos">cash-OK</span> = tradeable in a cash account; <span className="text-warn">spread</span> = needs spread/Level-3 approval; <span className="text-warn">over&nbsp;$1k</span> = doesn&apos;t fit the account; <span className="text-warn">low-n</span> = too few trades to trust.</li>
+          <li><strong className="text-zinc-200">Lotto vs Directional:</strong> both buy a single call/put. <em>Directional</em> buys <strong>at-the-money</strong> (~50/50, moves dollar-for-dollar). <em>Lotto</em> buys <strong>out-of-the-money</strong> — cheaper, higher payoff, lower win rate (a longer-shot bet).</li>
+          <li><strong className="text-zinc-200">Data:</strong> 60 trading days (~3 months) of 5-minute bars, same window for every strategy. Option prices are <em>modeled</em> (no free real option data), so dollars are approximate — best for <em>ranking</em>, not as a profit promise. <strong className="text-zinc-200">Tip:</strong> click any column header to sort.</li>
+        </ul>
+      </details>
 
       {/* Best offer / recommendation */}
       <section className="mb-7">
@@ -132,40 +152,46 @@ export default function BacktestPage() {
         )}
       </section>
 
+      {/* Strategy playbook — the two concrete recommendations */}
+      <section className="mb-7">
+        <h2 className="mb-1 text-lg font-semibold">Strategy playbook — the two to know</h2>
+        <p className="mb-3 text-xs text-zinc-500">
+          The single best config in each camp, distilled from the full search, with trade-level detail.
+        </p>
+        <div className="grid gap-3 md:grid-cols-2">
+          {[PLAYBOOK.credit, PLAYBOOK.nonCredit].map((p) => (
+            <div key={p.title}
+              className={`rounded-xl border p-4 ${p.tone === "pos" ? "border-emerald-700/40 bg-emerald-900/10" : "border-amber-600/30 bg-amber-500/5"}`}>
+              <div className="flex items-baseline justify-between gap-2">
+                <h3 className="text-sm font-semibold text-zinc-100">{p.title}</h3>
+                <span className={`text-[10px] uppercase tracking-wide ${p.tone === "pos" ? "text-pos" : "text-warn"}`}>{p.needs}</span>
+              </div>
+              <dl className="mt-2 space-y-1 text-xs">
+                {p.lines.map(([k, v]) => (
+                  <div key={k} className="flex gap-2">
+                    <dt className="w-24 shrink-0 text-zinc-500">{k}</dt>
+                    <dd className="text-zinc-300">{v}</dd>
+                  </div>
+                ))}
+              </dl>
+              <p className={`mt-2 border-t pt-2 text-xs ${p.tone === "pos" ? "border-emerald-800/40 text-pos" : "border-amber-700/30 text-warn"}`}>{p.stats}</p>
+            </div>
+          ))}
+        </div>
+        <p className="mt-2 text-xs text-zinc-600">
+          The cash-legal long is shown for completeness — its ~43% win rate is a coin flip; it&apos;s a leveraged bet
+          on market direction, not a proven edge. The real edge is the credit spread.
+        </p>
+      </section>
+
       {/* Out-of-sample optimizer results */}
       <section className="mb-7">
         <h2 className="mb-1 text-lg font-semibold">Out-of-sample survivors</h2>
         <p className="mb-3 text-xs text-zinc-500">
           Each config tuned on the first 65% of days, then scored on the held-out last 35%.
-          &ldquo;Robust&rdquo; = profitable in <em>both</em> windows (resists curve-fitting). {robust.length} of {optimized.configs.length} strategy slots produced a robust config.
+          &ldquo;Robust&rdquo; = profitable in <em>both</em> windows (resists curve-fitting). {robust.length} of {optimized.configs.length} strategy slots produced a robust config. Click headers to sort.
         </p>
-        <div className="overflow-x-auto rounded-xl border border-zinc-800">
-          <table className="w-full text-sm">
-            <thead className="text-left text-xs uppercase tracking-wide text-zinc-500">
-              <tr>
-                <th className="px-3 py-2">Symbol</th><th className="px-3 py-2">Strategy</th>
-                <th className="px-3 py-2">Best params</th>
-                <th className="px-3 py-2 text-right">Train $/day</th>
-                <th className="px-3 py-2 text-right">Test $/day</th>
-                <th className="px-3 py-2 text-right">Test win</th>
-                <th className="px-3 py-2"></th>
-              </tr>
-            </thead>
-            <tbody>
-              {robust.map((c, i) => (
-                <tr key={i} className="border-t border-zinc-800/70">
-                  <td className="px-3 py-2 font-medium text-zinc-200">{c.symbol}</td>
-                  <td className="px-3 py-2 text-zinc-300">{c.strategy_name}</td>
-                  <td className="px-3 py-2 text-xs text-zinc-500">{String(c.params.signal)} · tgt {Math.round(Number(c.params.target_pct) * 100)}% · stop {Math.round(Number(c.params.stop_pct) * 100)}%</td>
-                  <td className={`px-3 py-2 text-right tabular-nums ${toneClass(c.train_avg_daily)}`}>{signed(c.train_avg_daily)}</td>
-                  <td className={`px-3 py-2 text-right tabular-nums font-medium ${toneClass(c.test_avg_daily)}`}>{signed(c.test_avg_daily)}</td>
-                  <td className="px-3 py-2 text-right tabular-nums text-zinc-300">{Math.round(c.test_win * 100)}%</td>
-                  <td className="px-3 py-2">{c.cash_account_ok ? <Badge tone="ok">cash-OK</Badge> : <Badge tone="warn">spread</Badge>}</td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
+        <SurvivorsTable rows={robust} />
       </section>
 
       {/* Interactive runner */}
@@ -183,21 +209,9 @@ export default function BacktestPage() {
         <p className="mb-3 text-xs text-zinc-500">
           Every strategy × symbol × account size at default settings, ranked by a daily-consistency score
           (daily Sharpe × green-day share × $/day, discounted for small samples + un-affordability + non-cash-legality).
+          Click any column header to re-sort.
         </p>
-        <div className="overflow-x-auto rounded-xl border border-zinc-800 px-3">
-          <table className="w-full text-sm">
-            <thead className="text-left text-xs uppercase tracking-wide text-zinc-500">
-              <tr>
-                <th className="py-2 pr-2">#</th><th className="py-2 pr-2">Sym</th><th className="py-2 pr-2">Strategy</th>
-                <th className="py-2 pr-2 text-right">Acct</th><th className="py-2 pr-2 text-right">$/day</th>
-                <th className="py-2 pr-2 text-right">Win</th><th className="py-2 pr-2 text-right">Sharpe</th>
-                <th className="py-2 pr-2 text-right">PF</th><th className="py-2 pr-2 text-right">n</th>
-                <th className="py-2 pr-2">Flags</th>
-              </tr>
-            </thead>
-            <tbody>{top.map((s) => <Row key={`${s.symbol}-${s.strategy}-${s.account_size}`} s={s} />)}</tbody>
-          </table>
-        </div>
+        <LeaderboardTable rows={top} />
         <p className="mt-3 text-xs text-zinc-600">{ranked.methodology}</p>
       </section>
     </div>

@@ -432,21 +432,21 @@
         "params": {
           "signal": "orb",
           "entry_minute": 660,
-          "target_pct": 0.75,
+          "target_pct": 0.5,
           "stop_pct": 0.6,
           "time_exit_minute": 955
         },
-        "train_avg_daily": 69.28,
-        "train_score": 1.088,
+        "train_avg_daily": 49.24,
+        "train_score": 0.84,
         "train_win": 0.762,
-        "test_avg_daily": 34.85,
-        "test_score": 1.404,
-        "test_win": 0.818,
+        "test_avg_daily": 29.09,
+        "test_score": 0.943,
+        "test_win": 0.909,
         "test_trades": 11,
-        "test_profit_factor": 4.25,
+        "test_profit_factor": 6.11,
         "test_max_dd": -62.57,
         "robust": true,
-        "out_of_sample_consistency": 1.088
+        "out_of_sample_consistency": 0.84
       },
       "robust_count": 44,
       "total_tested": 81

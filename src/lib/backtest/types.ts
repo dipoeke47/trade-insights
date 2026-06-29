@@ -55,6 +55,8 @@ export interface Summary {
   trades: number;
   total_days?: number;
   participation?: number;
+  avg_daily_return_pct?: number;
+  median_daily_return_pct?: number;
   avg_daily_pnl?: number;
   median_daily_pnl?: number;
   std_daily_pnl?: number;
